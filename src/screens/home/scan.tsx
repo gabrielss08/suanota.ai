@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
-import { Camera, CameraView, useCameraPermissions } from "expo-camera";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type SavedLink = {
@@ -22,83 +22,74 @@ export default function ScanScreen() {
   const [link, setLink] = useState("");
   const [name, setName] = useState("");
 
-  // 🔹 Solicita permissão na montagem
+  // 🔹 Solicita permissão ao carregar
   useEffect(() => {
-    if (!permission) {
-      requestPermission();
-    }
+    if (!permission) requestPermission();
   }, [permission]);
 
-  // 🔹 Função ao detectar QR code
+  // 🔹 Leitura do QR
   const handleBarCodeScanned = ({ data }: { data: string }) => {
-    if (scanned) return; // evita leitura dupla
+    if (scanned) return;
     setScanned(true);
     setLink(data);
-    Alert.alert("QR Code lido!", data);
+    Alert.alert("QR Code lido ✔️", data);
   };
 
-  // 🔹 Salva no AsyncStorage
+  // 🔹 Salvar
   const handleSave = async () => {
     if (!link.trim() || !name.trim()) {
       Alert.alert("Atenção", "Preencha o nome e escaneie um QR code.");
       return;
     }
 
-    try {
-      const stored = await AsyncStorage.getItem("links");
-      const list: SavedLink[] = stored ? JSON.parse(stored) : [];
+    const stored = await AsyncStorage.getItem("links");
+    const list: SavedLink[] = stored ? JSON.parse(stored) : [];
 
-      list.push({
-        name,
-        link,
-        date: new Date().toLocaleString("pt-BR", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      });
+    list.push({
+      name,
+      link,
+      date: new Date().toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    });
 
-      await AsyncStorage.setItem("links", JSON.stringify(list));
+    await AsyncStorage.setItem("links", JSON.stringify(list));
 
-      Alert.alert("Sucesso ✅", "Link salvo com sucesso!");
-      setName("");
-      setLink("");
-      setScanned(false);
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Erro", "Não foi possível salvar o link.");
-    }
+    Alert.alert("Salvo!", "O link foi armazenado com sucesso.");
+    setLink("");
+    setName("");
+    setScanned(false);
   };
 
-  // 🔹 Permissão de câmera
+  // 🔹 Sem permissão carregada ainda
   if (!permission)
     return (
       <View style={styles.center}>
-        <Text>Solicitando permissão da câmera...</Text>
+        <Text style={{ color: "#333" }}>Carregando permissões...</Text>
       </View>
     );
 
+  // 🔹 Permissão negada
   if (!permission.granted)
     return (
       <View style={styles.center}>
-        <Text>Permissão negada para usar a câmera</Text>
-        <TouchableOpacity onPress={requestPermission} style={styles.button}>
-          <Text style={styles.buttonText}>Permitir</Text>
+        <Text style={styles.deniedText}>Permissão da câmera negada</Text>
+        <TouchableOpacity style={styles.button} onPress={requestPermission}>
+          <Text style={styles.buttonText}>Permitir acesso</Text>
         </TouchableOpacity>
       </View>
     );
 
-  // 🔹 Interface principal
   return (
     <View style={styles.container}>
       {!scanned ? (
         <CameraView
           onBarcodeScanned={handleBarCodeScanned}
-          barcodeScannerSettings={{
-            barcodeTypes: ["qr"],
-          }}
+          barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
           style={StyleSheet.absoluteFillObject}
         />
       ) : (
@@ -108,7 +99,7 @@ export default function ScanScreen() {
           <TextInput
             style={styles.input}
             placeholder="Digite um nome para o link"
-            placeholderTextColor="#888"
+            placeholderTextColor="#aaa"
             value={name}
             onChangeText={setName}
           />
@@ -130,48 +121,86 @@ export default function ScanScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
+    backgroundColor: "#F2F4F7",
   },
+
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
   },
+
+  deniedText: {
+    fontSize: 16,
+    color: "#333",
+    marginBottom: 10,
+  },
+
   form: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    paddingHorizontal: 25,
+    paddingVertical: 45,
     backgroundColor: "#fff",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 8,
   },
+
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 20,
+    fontSize: 26,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 30,
+    color: "#222",
   },
+
   input: {
     width: "100%",
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    marginBottom: 15,
+    padding: 15,
+    borderWidth: 1.4,
+    borderColor: "#D0D5DD",
+    borderRadius: 12,
+    backgroundColor: "#FAFAFA",
+    marginBottom: 20,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
+
   button: {
-    backgroundColor: "#007AFF",
-    padding: 12,
-    borderRadius: 8,
     width: "100%",
+    paddingVertical: 15,
+    borderRadius: 12,
+    backgroundColor: "#007AFF",
+
+    shadowColor: "#007AFF",
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+
     alignItems: "center",
+    marginTop: 10,
   },
+
   buttonText: {
     color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
+    fontWeight: "700",
+    fontSize: 17,
   },
+
   link: {
+    marginTop: 20,
+    textAlign: "center",
     color: "#007AFF",
-    marginTop: 15,
-    fontWeight: "600",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });
